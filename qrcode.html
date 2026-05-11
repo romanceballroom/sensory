@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>尋寶遊戲 - QR Code 列印面板</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode.js/1.5.3/qrcode.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'PingFang TC', 'Microsoft YaHei', Arial, sans-serif;
+            background: #f5f5f5;
+            padding: 2rem;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 1rem;
+            color: #333;
+            font-size: 32px;
+        }
+        
+        .info {
+            background: #e3f2fd;
+            border: 2px solid #90caf9;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            color: #1565c0;
+            text-align: center;
+        }
+        
+        .print-notice {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            color: #856404;
+            text-align: center;
+            font-weight: 600;
+        }
+        
+        .qr-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .qr-card {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+            page-break-inside: avoid;
+        }
+        
+        .qr-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        }
+        
+        .qr-card h2 {
+            font-size: 20px;
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+        
+        .qr-card .icon {
+            font-size: 48px;
+            margin-bottom: 1rem;
+        }
+        
+        .qr-card .story-name {
+            color: #667eea;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            font-size: 16px;
+        }
+        
+        .qr-code-container {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1.5rem 0;
+            display: inline-block;
+        }
+        
+        .qr-code-container svg {
+            display: block;
+            margin: 0 auto;
+        }
+        
+        .url-info {
+            background: #f5f5f5;
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            word-break: break-all;
+            font-size: 12px;
+            color: #666;
+            font-family: monospace;
+        }
+        
+        .test-link {
+            display: inline-block;
+            margin-top: 1rem;
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .test-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .instructions {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .instructions h3 {
+            color: #333;
+            margin-bottom: 1rem;
+            font-size: 20px;
+        }
+        
+        .instructions ol {
+            margin-left: 1.5rem;
+            line-height: 1.8;
+            color: #666;
+        }
+        
+        .instructions li {
+            margin-bottom: 0.5rem;
+            font-size: 15px;
+        }
+        
+        .print-button {
+            display: block;
+            margin: 2rem auto;
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        
+        .print-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            
+            .info, .print-notice, .instructions, .print-button, .test-link {
+                display: none;
+            }
+            
+            .qr-card {
+                page-break-inside: avoid;
+                box-shadow: none;
+                border: 1px solid #ccc;
+            }
+            
+            .qr-grid {
+                gap: 1rem;
+            }
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 3rem;
+            padding: 2rem;
+            border-top: 1px solid #e0e0e0;
+            color: #999;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 尋寶遊戲 - QR Code 列印面板</h1>
+        
+        <div class="print-notice">
+            🖨️ 準備好了嗎？點擊下方「列印」按鈕，或按 Ctrl+P / Cmd+P 列印頁面
+        </div>
+        
+        <div class="instructions">
+            <h3>📋 使用說明</h3>
+            <ol>
+                <li><strong>列印 QR Code：</strong>點擊下方「列印」按鈕或用瀏覽器的列印功能</li>
+                <li><strong>裁切 QR Code：</strong>將列印好的 QR Code 裁成方形</li>
+                <li><strong>貼在現場：</strong>在活動現場的各個點位貼上對應的 QR Code</li>
+                <li><strong>參與者掃描：</strong>參與者用手機掃描 QR Code → 遊戲自動打開 → 查看故事 → 收集印章</li>
+            </ol>
+        </div>
+        
+        <button class="print-button" onclick="window.print()">🖨️ 列印 QR Code</button>
+        
+        <div class="qr-grid" id="qrGrid"></div>
+        
+        <button class="print-button" onclick="window.print()">🖨️ 列印 QR Code</button>
+        
+        <div class="footer">
+            <p>💡 提示：使用高質量紙張列印，確保 QR Code 清晰易掃描</p>
+            <p>🔗 遊戲網址：<strong>https://romanceballroom.github.io/sensory/</strong></p>
+        </div>
+    </div>
+
+    <script>
+        const points = [
+            { id: 1, icon: '🔮', name: '古老的祕密' },
+            { id: 2, icon: '🎨', name: '創意交匯點' },
+            { id: 3, icon: '💝', name: '心靈共鳴' },
+            { id: 4, icon: '✨', name: '光影游戲' },
+            { id: 5, icon: '🌿', name: '自然的呼喚' },
+            { id: 6, icon: '⏳', name: '時光碎片' },
+            { id: 7, icon: '🔥', name: '激情綻放' },
+            { id: 8, icon: '🌌', name: '無限可能' }
+        ];
+
+        const qrGrid = document.getElementById('qrGrid');
+        
+        points.forEach((point, index) => {
+            const card = document.createElement('div');
+            card.className = 'qr-card';
+            
+            // 生成完整 URL
+            const gameUrl = `https://romanceballroom.github.io/sensory/?point=${point.id}`;
+            
+            card.innerHTML = `
+                <div class="icon">${point.icon}</div>
+                <h2>點位 ${point.id}</h2>
+                <div class="story-name">${point.name}</div>
+                
+                <div class="qr-code-container" id="qr-${point.id}"></div>
+                
+                <div class="url-info">
+                    ${gameUrl}
+                </div>
+                
+                <a href="${gameUrl}" class="test-link" target="_blank">🔗 測試連結</a>
+            `;
+            
+            qrGrid.appendChild(card);
+            
+            // 生成 QR Code
+            const qrElement = document.getElementById(`qr-${point.id}`);
+            try {
+                new QRCode(qrElement, {
+                    text: gameUrl,
+                    width: 200,
+                    height: 200,
+                    colorDark: '#000000',
+                    colorLight: '#ffffff',
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+            } catch (error) {
+                console.error(`QR Code 生成失敗 (點位 ${point.id}):`, error);
+                qrElement.innerHTML = '<p style="color: red;">QR Code 生成失敗</p>';
+            }
+        });
+    </script>
+</body>
+</html>
