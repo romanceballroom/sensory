@@ -1011,9 +1011,26 @@
             }
         });
 
+        // URL 參數檢測 - 掃描 QRcode 後自動打開故事
+        function checkUrlParams() {
+            const params = new URLSearchParams(window.location.search);
+            const pointId = params.get('point');
+            
+            if (pointId) {
+                const point = treasurePoints.find(p => p.id === parseInt(pointId));
+                if (point) {
+                    // 延遲打開，確保頁面已完全加載
+                    setTimeout(() => {
+                        openStory(point.id);
+                    }, 500);
+                }
+            }
+        }
+
         // 初始化
         initializePoints();
         updateStamps();
+        checkUrlParams();
     </script>
 </body>
 </html>
