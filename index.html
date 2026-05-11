@@ -708,19 +708,46 @@
             const canvas = document.getElementById('canvas');
             
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: 'environment' }
-                });
+                // 先嘗試後置相機
+                const constraints = {
+                    video: { 
+                        facingMode: { ideal: 'environment' },
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    },
+                    audio: false
+                };
+                
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
                 
                 video.srcObject = stream;
+                video.setAttribute('autoplay', 'true');
+                video.setAttribute('muted', 'true');
+                video.play().catch(e => console.warn('視訊播放警告:', e));
+                
                 cameraActive = true;
                 overlay.classList.add('active');
                 
-                // 開始掃描
-                scanQRCode(video, canvas);
+                // 等待視訊準備好後開始掃描
+                setTimeout(() => {
+                    scanQRCode(video, canvas);
+                }, 500);
+                
             } catch (error) {
-                alert('無法訪問相機。請確認已授予相機權限。');
                 console.error('相機訪問錯誤:', error);
+                let errorMsg = '無法訪問相機。';
+                
+                if (error.name === 'NotAllowedError') {
+                    errorMsg = '相機權限被拒絕。\n\n請在設置中允許此應用訪問相機。';
+                } else if (error.name === 'NotFoundError') {
+                    errorMsg = '找不到相機設備。\n\n請確認你的設備有相機。';
+                } else if (error.name === 'NotReadableError') {
+                    errorMsg = '相機被其他應用使用中。\n\n請關閉其他相機應用後重試。';
+                } else if (error.name === 'SecurityError') {
+                    errorMsg = '出於安全原因，無法訪問相機。\n\n請確認使用的是 HTTPS 連接。';
+                }
+                
+                alert(errorMsg);
             }
         }
 
