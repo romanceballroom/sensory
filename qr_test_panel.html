@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>尋寶遊戲 - QR Code 測試面板</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode.js/1.5.3/qrcode.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'PingFang TC', 'Microsoft YaHei', Arial, sans-serif;
+            background: #f5f5f5;
+            padding: 2rem;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 1rem;
+            color: #333;
+        }
+        
+        .info {
+            background: #e3f2fd;
+            border: 1px solid #90caf9;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 2rem;
+            color: #1565c0;
+            text-align: center;
+        }
+        
+        .qr-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+        
+        .qr-card {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .qr-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        }
+        
+        .qr-card h2 {
+            font-size: 20px;
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+        
+        .qr-card .icon {
+            font-size: 48px;
+            margin-bottom: 1rem;
+        }
+        
+        .qr-code {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1.5rem 0;
+            display: inline-block;
+        }
+        
+        .qr-code svg {
+            display: block;
+            margin: 0 auto;
+        }
+        
+        .url-info {
+            background: #f5f5f5;
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            word-break: break-all;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .test-link {
+            display: inline-block;
+            margin-top: 1rem;
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .test-link:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+        
+        .story-name {
+            color: #667eea;
+            font-weight: 600;
+            margin-top: 0.5rem;
+        }
+        
+        .instructions {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .instructions h3 {
+            color: #333;
+            margin-bottom: 1rem;
+        }
+        
+        .instructions ol {
+            margin-left: 1.5rem;
+            line-height: 1.8;
+            color: #666;
+        }
+        
+        .instructions li {
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 尋寶遊戲 - QR Code 測試面板</h1>
+        
+        <div class="instructions">
+            <h3>📋 測試說明</h3>
+            <ol>
+                <li>下方展示了 8 個點位的 QR Code</li>
+                <li>用手機掃描 QR Code，會自動打開遊戲並顯示該點位的故事</li>
+                <li>或點擊「開始遊戲」按鈕直接測試該點位</li>
+                <li>測試時確保兩個 HTML 文件在同一個資料夾中</li>
+            </ol>
+        </div>
+        
+        <div class="info">
+            💡 將這些 QR Code 列印出來，放在活動現場的各個點位即可！
+        </div>
+        
+        <div class="qr-grid" id="qrGrid"></div>
+    </div>
+
+    <script>
+        // 點位資料
+        const points = [
+            { id: 1, icon: '🔮', name: '古老的祕密' },
+            { id: 2, icon: '🎨', name: '創意交匯點' },
+            { id: 3, icon: '💝', name: '心靈共鳴' },
+            { id: 4, icon: '✨', name: '光影游戲' },
+            { id: 5, icon: '🌿', name: '自然的呼喚' },
+            { id: 6, icon: '⏳', name: '時光碎片' },
+            { id: 7, icon: '🔥', name: '激情綻放' },
+            { id: 8, icon: '🌌', name: '無限可能' }
+        ];
+
+        // 生成 QR Code
+        const qrGrid = document.getElementById('qrGrid');
+        
+        points.forEach((point, index) => {
+            const card = document.createElement('div');
+            card.className = 'qr-card';
+            
+            // 生成 URL（相對路徑，方便在本地測試）
+            const baseUrl = window.location.pathname.split('/').slice(0, -1).join('/');
+            const gameUrl = `treasure_hunt_v2.html?point=${point.id}`;
+            const fullUrl = `${window.location.origin}${baseUrl}/${gameUrl}`;
+            
+            card.innerHTML = `
+                <div class="icon">${point.icon}</div>
+                <h2>點位 ${point.id}</h2>
+                <div class="story-name">${point.name}</div>
+                
+                <div class="url-info">
+                    <strong>URL:</strong><br>
+                    ${gameUrl}
+                </div>
+                
+                <div class="qr-code" id="qr-${point.id}"></div>
+                
+                <a href="${gameUrl}" class="test-link" target="_blank">📱 開始遊戲</a>
+            `;
+            
+            qrGrid.appendChild(card);
+            
+            // 生成 QR Code
+            const qrElement = document.getElementById(`qr-${point.id}`);
+            new QRCode(qrElement, {
+                text: gameUrl,
+                width: 200,
+                height: 200,
+                colorDark: '#000000',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        });
+    </script>
+</body>
+</html>
