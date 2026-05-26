@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>感官尋寶地圖</title>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'PingFang TC', 'Microsoft YaHei', Arial, sans-serif;
+            background: #f0eaf8;
+            color: #1a1a1a;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ── 頂部資訊區 ── */
+        .top-bar {
+            background: #f0eaf8;
+            padding: 14px 16px 10px;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+
+        .top-left {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .title {
+            font-size: 22px;
+            font-weight: 700;
+            color: #1a1a1a;
+            letter-spacing: 1px;
+            line-height: 1.2;
+        }
+
+        /* 印章格子 */
+        .stamps-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 32px);
+            grid-template-rows: repeat(2, 32px);
+            gap: 5px;
+        }
+
+        .stamp-circle {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 2px solid #1a1a1a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 600;
+            color: #1a1a1a;
+            background: transparent;
+            transition: all 0.3s ease;
+        }
+
+        .stamp-circle.collected {
+            background: #1a1a1a;
+            color: #f0eaf8;
+        }
+
+        .stamp-label {
+            font-size: 12px;
+            color: #555;
+            margin-top: 2px;
+        }
+
+        /* 掃描按鈕 */
+        .scan-btn {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            background: #7c3aed;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            flex-shrink: 0;
+            box-shadow: 0 4px 16px rgba(124, 58, 237, 0.35);
+            transition: all 0.2s;
+        }
+
+        .scan-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(124, 58, 237, 0.5);
+        }
+
+        .scan-btn:active {
+            transform: scale(0.97);
+        }
+
+        .scan-btn .camera-icon {
+            font-size: 26px;
+            line-height: 1;
+        }
+
+        .scan-btn .btn-text {
+            font-size: 10px;
+            font-weight: 600;
+            color: white;
+            text-align: center;
+            line-height: 1.3;
+        }
+
+        /* ── 地圖區 ── */
+        .map-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .map-img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center top;
+            cursor: grab;
+            transform-origin: 0 0;
+        }
+
+        .map-img:active {
+            cursor: grabbing;
+        }
+
+        /* 地圖發光點位 */
+        .map-point {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            cursor: pointer;
+            z-index: 10;
+        }
+
+        .map-point .dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .map-point .ring {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            opacity: 0.4;
+            animation: ripple 2s ease-in-out infinite;
+        }
+
+        .map-point.collected .dot {
+            opacity: 0.3;
+        }
+
+        .map-point.collected .ring {
+            animation: none;
+            opacity: 0.1;
+        }
+
+        @keyframes ripple {
+            0%, 100% { transform: scale(0.8); opacity: 0.5; }
+            50% { transform: scale(1.3); opacity: 0.1; }
+        }
+
+        /* 縮放控制 */
+        .map-controls {
+            position: absolute;
+            bottom: 20px;
+            right: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 20;
+        }
+
+        .map-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            background: white;
+            border: 1px solid #ddd;
+            font-size: 20px;
+            font-weight: 500;
+            color: #7c3aed;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+        }
+
+        .map-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* 兌換按鈕 */
+        .reward-btn {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 28px;
+            background: #7c3aed;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 6px 16px rgba(124, 58, 237, 0.4);
+            animation: floatUp 2s ease-in-out infinite;
+            white-space: nowrap;
+            z-index: 20;
+        }
+
+        .reward-btn.hidden {
+            display: none;
+        }
+
+        @keyframes floatUp {
+            0%, 100% { transform: translateX(-50%) translateY(0); }
+            50% { transform: translateX(-50%) translateY(-8px); }
+        }
+
+        /* ── 相機掃描層 ── */
+        .camera-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: #000;
+            z-index: 2000;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .camera-overlay.active {
+            display: flex;
+        }
+
+        #camera {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        #canvas { display: none; }
+
+        .scanner-frame {
+            position: absolute;
+            width: 260px;
+            height: 260px;
+            border: 3px solid #7c3aed;
+            border-radius: 16px;
+            box-shadow: 0 0 0 4000px rgba(0,0,0,0.5);
+        }
+
+        .camera-top {
+            position: fixed;
+            top: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 2001;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .camera-label {
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .close-btn {
+            padding: 8px 18px;
+            background: rgba(255,255,255,0.2);
+            border: 1.5px solid white;
+            color: white;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .scan-hint {
+            position: fixed;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.6);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            z-index: 2001;
+        }
+
+        /* ── 故事 Modal ── */
+        .modal-bg {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.55);
+            z-index: 3000;
+            align-items: flex-end;
+            justify-content: center;
+        }
+
+        .modal-bg.active {
+            display: flex;
+        }
+
+        .modal-card {
+            background: white;
+            border-radius: 24px 24px 0 0;
+            padding: 1.5rem 1.5rem 2rem;
+            width: 100%;
+            max-width: 480px;
+            max-height: 85vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s ease;
+            position: relative;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(40px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: #f0f0f0;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #555;
+        }
+
+        .story-img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 14px;
+            margin-bottom: 1.2rem;
+            display: block;
+        }
+
+        .story-img-placeholder {
+            width: 100%;
+            height: 200px;
+            border-radius: 14px;
+            margin-bottom: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 70px;
+        }
+
+        .story-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 0.6rem;
+        }
+
+        .story-body {
+            font-size: 14px;
+            color: #555;
+            line-height: 1.8;
+            margin-bottom: 1.4rem;
+        }
+
+        .stamp-btn {
+            width: 100%;
+            padding: 14px;
+            background: #1a1a1a;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .stamp-btn:hover:not(:disabled) {
+            background: #333;
+        }
+
+        .stamp-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .stamp-msg {
+            font-size: 13px;
+            text-align: center;
+            margin-top: 10px;
+            color: #999;
+        }
+
+        .stamp-msg.success { color: #16a34a; font-weight: 500; }
+        .stamp-msg.warning { color: #d97706; font-weight: 500; }
+
+        /* ── 兌換券 Modal ── */
+        .reward-modal-bg {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 4000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .reward-modal-bg.active {
+            display: flex;
+        }
+
+        .reward-card {
+            background: white;
+            border-radius: 20px;
+            padding: 2.5rem 2rem;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            animation: slideUp 0.3s ease;
+        }
+
+        .reward-congrats {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 0.5rem;
+        }
+
+        .reward-img {
+            width: 140px;
+            height: 140px;
+            object-fit: cover;
+            border-radius: 14px;
+            margin: 1rem auto;
+            display: block;
+        }
+
+        .reward-img-placeholder {
+            font-size: 80px;
+            margin: 1rem 0;
+        }
+
+        .reward-subtitle {
+            font-size: 18px;
+            font-weight: 600;
+            color: #7c3aed;
+            margin-bottom: 0.5rem;
+        }
+
+        .reward-desc {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.7;
+            margin-bottom: 1.5rem;
+        }
+
+        .reward-code-box {
+            background: #f5f0ff;
+            border: 2px solid #7c3aed;
+            border-radius: 12px;
+            padding: 1.2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .reward-code-label {
+            font-size: 11px;
+            color: #999;
+            margin-bottom: 4px;
+        }
+
+        .reward-code-val {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1a1a1a;
+            font-family: monospace;
+            letter-spacing: 2px;
+        }
+
+        .confirm-btn {
+            width: 100%;
+            padding: 14px;
+            background: #7c3aed;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .confirm-btn:disabled {
+            background: #16a34a;
+            opacity: 0.8;
+            cursor: not-allowed;
+        }
+
+        .confirmed-text {
+            font-size: 16px;
+            font-weight: 600;
+            color: #16a34a;
+            margin-top: 12px;
+        }
+
+        /* ── 已兌換封鎖頁 ── */
+        .blocked {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: #1a1a1a;
+            z-index: 9999;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .blocked.active { display: flex; }
+
+        .blocked-icon { font-size: 80px; margin-bottom: 1.5rem; }
+
+        .blocked-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 1rem;
+        }
+
+        .blocked-text {
+            font-size: 15px;
+            color: rgba(255,255,255,0.6);
+            line-height: 1.8;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ── 頂部資訊區 ── -->
+    <div class="top-bar">
+        <div class="top-left">
+            <div class="title">感官尋寶地圖</div>
+            <div class="stamps-grid" id="stampsGrid"></div>
+            <div class="stamp-label">已收集印章 <span id="stampCount">0</span>/10</div>
+        </div>
+        <button class="scan-btn" onclick="startCamera()">
+            <span class="camera-icon">📷</span>
+            <span class="btn-text">找到寶藏<br>開啟相機掃描</span>
+        </button>
+    </div>
+
+    <!-- ── 地圖區 ── -->
+    <div class="map-container" id="mapContainer">
+        <img
+            id="mapImg"
+            class="map-img"
+            src="map.jpg"
+            alt="感官尋寶地圖"
+            draggable="false"
+        />
+
+        <!-- 縮放按鈕 -->
+        <div class="map-controls">
+            <button class="map-btn" onclick="zoomIn()">+</button>
+            <button class="map-btn" onclick="zoomOut()">−</button>
+            <button class="map-btn" onclick="resetMap()">↻</button>
+        </div>
+
+        <!-- 兌換獎品按鈕 -->
+        <button class="reward-btn hidden" id="rewardBtn" onclick="showReward()">
+            🏆 集滿5章！點擊兌換獎品
+        </button>
+    </div>
+
+    <!-- ── 相機掃描層 ── -->
+    <div class="camera-overlay" id="cameraOverlay">
+        <video id="camera" playsinline autoplay muted></video>
+        <canvas id="canvas"></canvas>
+        <div class="scanner-frame"></div>
+        <div class="camera-top">
+            <span class="camera-label">對準 QR Code 掃描</span>
+            <button class="close-btn" onclick="stopCamera()">關閉</button>
+        </div>
+        <div class="scan-hint">將 QR Code 放入框框內</div>
+    </div>
+
+    <!-- ── 故事 Modal ── -->
+    <div class="modal-bg" id="storyModal">
+        <div class="modal-card">
+            <button class="modal-close" onclick="closeStory()">✕</button>
+            <div id="storyImgWrap"></div>
+            <h2 class="story-title" id="storyTitle"></h2>
+            <p class="story-body" id="storyBody"></p>
+            <button class="stamp-btn" id="stampBtn" onclick="collectStamp()">得到此印章</button>
+            <p class="stamp-msg" id="stampMsg"></p>
+        </div>
+    </div>
+
+    <!-- ── 兌換券 Modal ── -->
+    <div class="reward-modal-bg" id="rewardModal">
+        <div class="reward-card">
+            <div class="reward-congrats">🎉 恭喜！</div>
+            <img
+                class="reward-img"
+                src="reward.jpg"
+                alt="獎品"
+                onerror="this.style.display='none'; document.getElementById('rewardEmoji').style.display='block';"
+            />
+            <div id="rewardEmoji" style="display:none;" class="reward-img-placeholder">🏆</div>
+            <div class="reward-subtitle">獎品兌換券</div>
+            <p class="reward-desc">您已成功集滿 5 個印章！<br>請憑此兌換券向工作人員領取獎品。</p>
+            <div class="reward-code-box">
+                <div class="reward-code-label">兌換券編號</div>
+                <div class="reward-code-val" id="rewardCode">-</div>
+            </div>
+            <button class="confirm-btn" id="confirmBtn" onclick="confirmRedeem()">工作人員確認兌換</button>
+            <div class="confirmed-text" id="confirmedText" style="display:none;">✓ 已兌換完成</div>
+        </div>
+    </div>
+
+    <!-- ── 已兌換封鎖頁 ── -->
+    <div class="blocked" id="blockedPage">
+        <div class="blocked-icon">🎊</div>
+        <div class="blocked-title">感謝參與！</div>
+        <p class="blocked-text">此手機已完成本次尋寶遊戲<br>並成功兌換獎品。<br><br>感謝您的參與，期待下次活動！</p>
+    </div>
+
+<script>
+    // ── 資料 ──
+    const COLLECTED_KEY = 'sensory_collected';
+    const REDEEMED_KEY  = 'sensory_redeemed';
+    const TOTAL = 10;
+    const REWARD_THRESHOLD = 5;
+
+    const points = [
+        { id:1,  color:'#7c3aed', title:'古老的祕密',  story:'這處展區展示了我們團隊過去五年的探險紀錄。每一件藝術作品都代表了一次突破性的發現和對創意的執著追求。', icon:'🔮', image:'story-1.jpg' },
+        { id:2,  color:'#db2777', title:'創意交匯點',  story:'在這個展示空間，我們匯集了來自不同文化的靈感與創意。每件展品都訴說著不同的故事，展現多元的視角。',   icon:'🎨', image:null },
+        { id:3,  color:'#059669', title:'心靈共鳴',    story:'這個中央展區是我們對人類情感的詮釋。透過這些作品，我們邀請您感受藝術的力量和內心的共鳴。',           icon:'💝', image:null },
+        { id:4,  color:'#d97706', title:'光影游戲',    story:'光與影的對話創造了這個魔幻空間。我們相信每一縷光線都能點亮心中的火光，帶來內心的溫暖。',           icon:'✨', image:null },
+        { id:5,  color:'#0284c7', title:'自然的呼喚',  story:'受自然啟發的這個區域，展示了生態與藝術的完美結合。讓我們一起保護地球，珍惜自然的恩賜。',           icon:'🌿', image:null },
+        { id:6,  color:'#dc2626', title:'時光碎片',    story:'過去、現在與未來在這個空間交匯。這些作品是時間流逝的見證，記錄著我們共同的回憶。',               icon:'⏳', image:null },
+        { id:7,  color:'#7c3aed', title:'激情綻放',    story:'炽熱的紅色代表藝術家的激情與執著。每一筆都傾注了靈魂的力量，燃燒著創意的熊熊火焰。',             icon:'🔥', image:null },
+        { id:8,  color:'#0891b2', title:'無限可能',    story:'這個展區象徵著藝術的無限潛力。我們邀請您一起探索更多的可能性，開啟想像的大門。',                 icon:'🌌', image:null },
+        { id:9,  color:'#65a30d', title:'聲音的形狀',  story:'聲音是看不見的藝術，但它的形狀充斥在這個空間的每個角落，引導你感受不同頻率的震動與共鳴。',         icon:'🎵', image:null },
+        { id:10, color:'#c2410c', title:'記憶的邊界',  story:'記憶是流動的，邊界是模糊的。這個展區邀請你重新審視自己的過去，並思考現在與未來的連結。',           icon:'🧠', image:null },
+    ];
+
+    let currentPointId = null;
+    let cameraActive   = false;
+    let animationId    = null;
+
+    // 地圖拖拉縮放
+    let scale = 1, tx = 0, ty = 0, dragging = false, startX, startY;
+
+    // ── localStorage ──
+    function getCollected() {
+        try { return JSON.parse(localStorage.getItem(COLLECTED_KEY)) || []; }
+        catch { return []; }
+    }
+    function saveCollected(arr) {
+        localStorage.setItem(COLLECTED_KEY, JSON.stringify(arr));
+    }
+    function isRedeemed() {
+        return localStorage.getItem(REDEEMED_KEY) === 'true';
+    }
+
+    // ── 初始化 ──
+    function init() {
+        if (isRedeemed()) {
+            document.getElementById('blockedPage').classList.add('active');
+            return;
+        }
+        renderStamps();
+        applyMapTransform();
+        setupMapDrag();
+        checkRewardBtn();
+
+        // URL 參數直接開故事
+        const p = new URLSearchParams(location.search).get('point');
+        if (p) {
+            const id = parseInt(p);
+            if (id >= 1 && id <= TOTAL) setTimeout(() => openStory(id), 600);
+        }
+    }
+
+    // ── 印章格子 ──
+    function renderStamps() {
+        const collected = getCollected();
+        const grid = document.getElementById('stampsGrid');
+        grid.innerHTML = '';
+        for (let i = 1; i <= TOTAL; i++) {
+            const el = document.createElement('div');
+            el.className = 'stamp-circle' + (collected.includes(i) ? ' collected' : '');
+            el.textContent = i;
+            grid.appendChild(el);
+        }
+        document.getElementById('stampCount').textContent = collected.length;
+    }
+
+    // ── 故事 Modal ──
+    function openStory(id) {
+        currentPointId = id;
+        const pt = points.find(p => p.id === id);
+        if (!pt) return;
+
+        const collected = getCollected();
+
+        // 圖片或 emoji
+        const wrap = document.getElementById('storyImgWrap');
+        if (pt.image) {
+            wrap.innerHTML = `<img src="${pt.image}" class="story-img" alt="${pt.title}"
+                onerror="this.outerHTML='<div class=\\'story-img-placeholder\\'
+                style=\\'background:${pt.color}20;\\'>${pt.icon}</div>'" />`;
+        } else {
+            wrap.innerHTML = `<div class="story-img-placeholder" style="background:${pt.color}20;">${pt.icon}</div>`;
+        }
+
+        document.getElementById('storyTitle').textContent = pt.icon + ' ' + pt.title;
+        document.getElementById('storyBody').textContent  = pt.story;
+
+        const btn = document.getElementById('stampBtn');
+        const msg = document.getElementById('stampMsg');
+        if (collected.includes(id)) {
+            btn.textContent = '✓ 已獲得印章';
+            btn.disabled = true;
+            msg.textContent = '此手機已集過此章，無法重複';
+            msg.className = 'stamp-msg warning';
+        } else {
+            btn.textContent = '得到此印章';
+            btn.disabled = false;
+            msg.textContent = '';
+            msg.className = 'stamp-msg';
+        }
+
+        document.getElementById('storyModal').classList.add('active');
+    }
+
+    function closeStory() {
+        document.getElementById('storyModal').classList.remove('active');
+        currentPointId = null;
+    }
+
+    function collectStamp() {
+        if (!currentPointId) return;
+        const collected = getCollected();
+        if (collected.includes(currentPointId)) return;
+
+        collected.push(currentPointId);
+        saveCollected(collected);
+        renderStamps();
+        checkRewardBtn();
+
+        const btn = document.getElementById('stampBtn');
+        const msg = document.getElementById('stampMsg');
+        btn.textContent = '✓ 已獲得印章';
+        btn.disabled = true;
+        msg.textContent = '🎉 印章收集成功！';
+        msg.className = 'stamp-msg success';
+    }
+
+    // ── 兌換按鈕 ──
+    function checkRewardBtn() {
+        const collected = getCollected();
+        const btn = document.getElementById('rewardBtn');
+        if (collected.length >= REWARD_THRESHOLD) {
+            btn.classList.remove('hidden');
+        } else {
+            btn.classList.add('hidden');
+        }
+    }
+
+    function showReward() {
+        const code = Date.now().toString().slice(-6) + '-' +
+                     Math.random().toString(36).substr(2,4).toUpperCase();
+        document.getElementById('rewardCode').textContent = code;
+        document.getElementById('confirmBtn').disabled = false;
+        document.getElementById('confirmedText').style.display = 'none';
+        document.getElementById('rewardModal').classList.add('active');
+    }
+
+    function confirmRedeem() {
+        localStorage.setItem(REDEEMED_KEY, 'true');
+        document.getElementById('confirmBtn').disabled = true;
+        document.getElementById('confirmedText').style.display = 'block';
+        setTimeout(() => {
+            document.getElementById('rewardModal').classList.remove('active');
+            document.getElementById('blockedPage').classList.add('active');
+        }, 1500);
+    }
+
+    // ── 相機 ──
+    async function startCamera() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: { ideal: 'environment' } }, audio: false
+            });
+            const video = document.getElementById('camera');
+            video.srcObject = stream;
+            cameraActive = true;
+            document.getElementById('cameraOverlay').classList.add('active');
+            video.onloadedmetadata = () => setTimeout(scanLoop, 500);
+        } catch(e) {
+            alert('無法開啟相機：' + e.message);
+        }
+    }
+
+    function stopCamera() {
+        const video = document.getElementById('camera');
+        if (video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
+        cameraActive = false;
+        document.getElementById('cameraOverlay').classList.remove('active');
+        if (animationId) cancelAnimationFrame(animationId);
+    }
+
+    function scanLoop() {
+        const video  = document.getElementById('camera');
+        const canvas = document.getElementById('canvas');
+        const ctx    = canvas.getContext('2d');
+        const tick = () => {
+            if (!cameraActive) return;
+            if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                canvas.width  = video.videoWidth;
+                canvas.height = video.videoHeight;
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const img  = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const code = jsQR(img.data, img.width, img.height, { inversionAttempts: 'dontInvert' });
+                if (code) { handleQR(code.data); return; }
+            }
+            animationId = requestAnimationFrame(tick);
+        };
+        tick();
+    }
+
+    function handleQR(data) {
+        let id = null;
+        const m = data.match(/point=(\d+)/);
+        if (m) id = parseInt(m[1]);
+        else   id = parseInt(data);
+        if (id >= 1 && id <= TOTAL) {
+            stopCamera();
+            openStory(id);
+        } else {
+            alert('無效的 QR Code，請重新掃描');
+        }
+    }
+
+    // ── 地圖拖拉縮放 ──
+    function applyMapTransform() {
+        const img = document.getElementById('mapImg');
+        img.style.transform       = `translate(${tx}px, ${ty}px) scale(${scale})`;
+        img.style.transformOrigin = '0 0';
+    }
+
+    function zoomIn()  { scale = Math.min(scale * 1.3, 5); applyMapTransform(); }
+    function zoomOut() { scale = Math.max(scale / 1.3, 0.5); applyMapTransform(); }
+    function resetMap(){ scale = 1; tx = 0; ty = 0; applyMapTransform(); }
+
+    function setupMapDrag() {
+        const el = document.getElementById('mapContainer');
+
+        el.addEventListener('mousedown', e => {
+            dragging = true;
+            startX = e.clientX - tx;
+            startY = e.clientY - ty;
+        });
+        document.addEventListener('mousemove', e => {
+            if (!dragging) return;
+            tx = e.clientX - startX;
+            ty = e.clientY - startY;
+            applyMapTransform();
+        });
+        document.addEventListener('mouseup', () => dragging = false);
+
+        el.addEventListener('touchstart', e => {
+            if (e.touches.length === 1) {
+                dragging = true;
+                startX = e.touches[0].clientX - tx;
+                startY = e.touches[0].clientY - ty;
+            }
+        });
+        document.addEventListener('touchmove', e => {
+            if (!dragging || e.touches.length !== 1) return;
+            tx = e.touches[0].clientX - startX;
+            ty = e.touches[0].clientY - startY;
+            applyMapTransform();
+        });
+        document.addEventListener('touchend', () => dragging = false);
+    }
+
+    // 點擊背景關閉
+    document.getElementById('storyModal').addEventListener('click', e => {
+        if (e.target.id === 'storyModal') closeStory();
+    });
+    document.getElementById('rewardModal').addEventListener('click', e => {
+        if (e.target.id === 'rewardModal') document.getElementById('rewardModal').classList.remove('active');
+    });
+
+    init();
+</script>
+</body>
+</html>
