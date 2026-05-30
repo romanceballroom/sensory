@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>感官尋寶地圖</title>
+    <title>浮舟探險地圖</title>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
     <style>
         * {
@@ -991,14 +991,14 @@
 
         <!-- 下方內容區 -->
         <div class="welcome-body">
-            <h1 class="welcome-title">感官饗宴</h1>
+            <h1 class="welcome-title">浮舟探險地圖</h1>
 
             <div class="welcome-divider"></div>
 
             <p class="welcome-desc">
-                這是一場關於感知與記憶的旅程<br>
-                十個點位，十段故事<br>
-                用你的名字，開啟這場屬於你的探索
+                銀河浮舟已經靠岸。<br>
+                十個點位，正在等待被發現<br>
+                十段訊號，只對今晚的你開放
             </p>
 
             <div>
@@ -1022,7 +1022,7 @@
     </div>
     <div class="top-bar">
         <div class="top-left">
-            <div class="title">感官尋寶地圖</div>
+            <div class="title">浮舟探險地圖</div>
             <div class="stamps-grid" id="stampsGrid"></div>
             <div class="stamp-label">已收集印章 <span id="stampCount">0</span>/10</div>
         </div>
@@ -1038,7 +1038,7 @@
             id="mapImg"
             class="map-img"
             src="map.jpg"
-            alt="感官尋寶地圖"
+            alt="浮舟探險地圖"
             draggable="false"
         />
 
@@ -1080,19 +1080,19 @@
 
             <!-- 互動輸入區 -->
             <div class="response-section" id="responseSection">
-                <span class="response-label">💬 你的感受</span>
-                <p class="response-hint">輸入你對這件作品的感受或想法，才能獲得印章</p>
+                <span class="response-label">留下你的訊號...</span>
+                <p class="response-hint">留下此刻的感受，印記才會啟動</p>
                 <textarea
                     class="response-input"
                     id="responseInput"
-                    placeholder="寫下你的想法..."
+                    placeholder="寫下你現在感覺到的..."
                     maxlength="200"
                     oninput="onInputChange()"
                 ></textarea>
                 <div class="char-count" id="charCount">0 / 200</div>
             </div>
 
-            <button class="stamp-btn" id="stampBtn" onclick="collectStamp()">得到此印章</button>
+            <button class="stamp-btn" id="stampBtn" onclick="collectStamp()">帶走這段訊號</button>
             <p class="stamp-msg" id="stampMsg"></p>
         </div>
     </div>
@@ -1109,7 +1109,7 @@
             />
             <div id="rewardEmoji" style="display:none;" class="reward-img-placeholder">🏆</div>
             <div class="reward-subtitle">獎品兌換券</div>
-            <p class="reward-desc">您已成功集滿 5 個印章！<br>請憑此兌換券向工作人員領取獎品。</p>
+            <p class="reward-desc">您已成功集滿 5 個訊號！<br>請憑此兌換券向工作人員領取獎品。</p>
             <button class="confirm-btn" id="confirmBtn" onclick="confirmRedeem()">工作人員確認兌換</button>
             <div class="confirmed-text" id="confirmedText" style="display:none;">✓ 已兌換完成</div>
         </div>
@@ -1125,8 +1125,8 @@
 
             <div class="guide-body">
                 <p class="guide-step" id="guideStep">第 1 步，共 2 步</p>
-                <h2 class="guide-title" id="guideTitle">探索感官饗宴地圖</h2>
-                <p class="guide-desc" id="guideDesc">在活動現場找到隱藏的寶藏點位，每個點位都有一段專屬故事等你發現。<br><br>🔵 集滿 5 個印章，即可兌換神秘禮物！</p>
+                <h2 class="guide-title" id="guideTitle">探索感官航行圖</h2>
+                <p class="guide-desc" id="guideDesc">銀河浮舟上藏著十個訊號點<br>每一個點位，都封存著一段故事<br>在場內移動、去感應、去發現<br><br>🔵 集滿 5 個訊號印記，即可解鎖來自 Fairy Oasis 的神秘回禮</p>
 
                 <!-- 進度點 -->
                 <div class="guide-dots">
